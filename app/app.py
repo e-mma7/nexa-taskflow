@@ -3,8 +3,15 @@
 ATTENTION : cette application contient VOLONTAIREMENT des failles de sécurité
 à des fins pédagogiques. Ne jamais la déployer sur un environnement réel.
 """
-import hashlib
-import pickle
+from werkzeug.security import generate_password_hash
+"""TaskFlow API — projet fil rouge du module DevSecOps.
+...
+"""
+from werkzeug.security import generate_password_hash
+import sqlite3
+import subprocess
+
+from flask import Flask, jsonify, request
 import sqlite3
 import subprocess
 
@@ -45,7 +52,7 @@ def list_tasks():
     owner = request.args.get("owner", "")
     conn = get_db()
     # Requête construite par concaténation
-    rows = conn.execute("SELECT * FROM tasks WHERE owner = '" + owner + "'").fetchall()
+    rows = conn.execute("SELECT * FROM tasks WHERE owner = ?", (owner,)).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 
@@ -67,7 +74,7 @@ def create_task():
 @app.route("/users", methods=["POST"])
 def create_user():
     data = request.get_json(force=True)
-    password_hash = hashlib.md5(data.get("password", "").encode()).hexdigest()
+    password_hash = generate_password_hash(data.get("password", ""))
     conn = get_db()
     conn.execute(
         "INSERT INTO users (username, password) VALUES (?, ?)",
@@ -80,14 +87,21 @@ def create_user():
 
 @app.route("/export", methods=["GET"])
 def export_tasks():
-    fmt = request.args.get("format", "csv")
-    output = subprocess.check_output("echo export " + fmt, shell=True)
-    return output
+    fmt = request.args.get("format", "csv").lower()
+
+    if fmt not in {"csv", "json"}:
+        return jsonify(error="Format non pris en charge"), 400
+
+    return jsonify(message=f"export {fmt}")
 
 
 @app.route("/import", methods=["POST"])
 def import_tasks():
-    tasks = pickle.loads(request.data)
+    tasks = request.get_json(silent=True)
+
+    if not isinstance(tasks, list):
+        return jsonify(error="Un tableau JSON est attendu"), 400
+
     return jsonify(imported=len(tasks))
 
 
@@ -99,4 +113,4 @@ def payment_status():
 
 if __name__ == "__main__":
     init_db()
-    app.run(host="0.0.0.0", port=8085, debug=True)
+    app.run(host="127.0.0.1", port=8085, debug=False)
