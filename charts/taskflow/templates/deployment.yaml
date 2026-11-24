@@ -1,7 +1,10 @@
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Release.Name }}-taskflow
+  labels:
+    app: {{ .Release.Name }}-taskflow
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -12,12 +15,25 @@ spec:
       labels:
         app: {{ .Release.Name }}-taskflow
     spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8085
+              protocol: TCP
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: TASKFLOW_DB
+              value: /data/taskflow.db
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}

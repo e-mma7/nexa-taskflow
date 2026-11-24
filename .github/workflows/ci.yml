@@ -57,10 +57,10 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   trivy:
     name: Trivy vulnerability scan
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,3 +71,16 @@ jobs:
           scan-type: fs
           scan-ref: .
           severity: HIGH,CRITICAL
+
+  checkov:
+    name: Checkov IaC Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Checkov
+        run: pip install checkov
+
+      - name: Run Checkov
+        run: checkov -d infra
