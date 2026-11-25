@@ -1,0 +1,15 @@
+
+rules:
+  - id: taskflow-subprocess-shell-true
+    languages:
+      - python
+    severity: ERROR
+    message: "TaskFlow : utilisation dangereuse de subprocess avec shell=True. Éviter le shell et utiliser des arguments séparés."
+    metadata:
+      category: security
+      technology:
+        - python
+      cwe: "CWE-78"
+      project: "TaskFlow"
+    patterns:
+      - pattern: subprocess.$FUNC(..., shell=True, ...)
